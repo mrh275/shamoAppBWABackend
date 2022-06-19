@@ -90,4 +90,19 @@ class UserController extends Controller
     {
         return ResponseFormatter::success($request->user(), 'Data profile user successfully fetched');
     }
+
+    public function updateProfile(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255',
+            'phone' => 'nullable|string|max:255',
+        ]);
+
+        $user = Auth::user();
+        $user->update($data);
+
+        return ResponseFormatter::success($user, 'Profile successfully updated');
+    }
 }
