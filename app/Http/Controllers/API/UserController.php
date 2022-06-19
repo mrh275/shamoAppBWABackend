@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Helpers\ResponseFormatter;
-use App\Http\Controllers\Controller;
-use App\Models\User;
 use Exception;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use App\Helpers\ResponseFormatter;
 use Laravel\Fortify\Rules\Password;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -40,6 +41,43 @@ class UserController extends Controller
                 'token_type' => 'Bearer',
                 'user' => $user,
             ], 'User registered successfully');
+        } catch (Exception $error) {
+            return ResponseFormatter::error([
+                'message' => 'Something went wreong',
+                'error' => $error,
+            ], 'Authentication failed', 500);
+        }
+    }
+
+    public function login(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => ['required'],
+            ]);
+
+            $credentials = request(['email', 'password']);
+
+            if (!Auth::attempt($credentials)) {
+                return ResponseFormatter::error([
+                    'message' => 'Unauthorized',
+                ], 'Authentication failed', 500);
+            }
+
+            $user = User::where('email', $request->email)->first();
+
+            if (!Hash::check($request->password, $user->password)) {
+                throw new \Exception('Invalid Credentials');
+            }
+
+            $tokenResult = $user->createToken('authToken')->plainTextToken;
+
+            return ResponseFormatter::success([
+                'access_token' => $tokenResult,
+                'token_type' => 'Bearer',
+                'user' => $user,
+            ], 'User logged in successfully');
         } catch (Exception $error) {
             return ResponseFormatter::error([
                 'message' => 'Something went wreong',
